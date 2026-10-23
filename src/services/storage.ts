@@ -1,6 +1,7 @@
 import { UserProgress, UserNote, QuizResult, RPGQuest, RPGHabit, RewardShopItem } from '../types';
 
-const STORAGE_KEY = 'orbit_user_progress_rpg_v2';
+// Storage key updated to fresh version so any existing browser session begins on Day 1 from scratch
+const STORAGE_KEY = 'orbit_user_progress_clean_v3';
 
 export const defaultShopItems: RewardShopItem[] = [
   {
@@ -45,22 +46,22 @@ export const defaultShopItems: RewardShopItem[] = [
   }
 ];
 
-const defaultQuests: RPGQuest[] = [
+export const freshStarterQuests: RPGQuest[] = [
   {
-    id: 'q-orbit-lesson',
-    title: 'Study Newton\'s Orbital Cannon (Lesson 1.4)',
-    rewardXp: 60,
-    rewardGold: 35,
+    id: 'q-first-lesson',
+    title: 'Begin Journey: Read Lesson 1 — What is the Universe?',
+    rewardXp: 50,
+    rewardGold: 25,
     icon: '⭐',
     category: 'lesson',
-    completed: true,
+    completed: false,
     targetTab: 'learning-path'
   },
   {
     id: 'q-sat-sim',
-    title: 'Run Satellite Orbit Simulator at 35,786 km GEO',
+    title: 'Visit Satellite Lab: Test Orbital Velocity at 400 km LEO',
     rewardXp: 40,
-    rewardGold: 25,
+    rewardGold: 20,
     icon: '🛰️',
     category: 'satellite-lab',
     completed: false,
@@ -68,136 +69,106 @@ const defaultQuests: RPGQuest[] = [
   },
   {
     id: 'q-jwst-disc',
-    title: 'Read Today\'s JWST First Deep Field Discovery',
-    rewardXp: 50,
-    rewardGold: 30,
+    title: 'Read Today\'s Discovery: JWST First Deep Field',
+    rewardXp: 40,
+    rewardGold: 20,
     icon: '🔭',
     category: 'discovery',
     completed: false,
     targetTab: 'discover'
   },
   {
-    id: 'q-quiz-ace',
-    title: 'Pass a Space Physics Challenge Quiz with 100%',
-    rewardXp: 80,
-    rewardGold: 50,
+    id: 'q-first-quiz',
+    title: 'Test Your Mind: Pass your first lesson quiz challenge',
+    rewardXp: 70,
+    rewardGold: 40,
     icon: '💎',
     category: 'quiz',
     completed: false,
     targetTab: 'learning-path'
   },
   {
-    id: 'q-log-note',
-    title: 'Record a key orbital formula in My Universe Notebook',
+    id: 'q-first-note',
+    title: 'Log your first scientific finding in My Universe Notebook',
     rewardXp: 30,
-    rewardGold: 20,
+    rewardGold: 15,
     icon: '📜',
     category: 'habit',
-    completed: true,
+    completed: false,
     targetTab: 'my-universe'
   }
 ];
 
-const defaultHabits: RPGHabit[] = [
+export const freshStarterHabits: RPGHabit[] = [
   {
     id: 'h-study',
     name: 'Space Science Lesson',
-    weekStatus: [true, true, true, true, true, false, false]
+    weekStatus: [false, false, false, false, false, false, false]
   },
   {
     id: 'h-lab',
     name: 'Satellite Lab Simulation',
-    weekStatus: [true, true, false, true, true, true, false]
+    weekStatus: [false, false, false, false, false, false, false]
   },
   {
     id: 'h-quiz',
-    name: 'Quiz & Knowledge Recall',
-    weekStatus: [true, false, true, true, false, true, false]
+    name: 'Quiz & Concept Recall',
+    weekStatus: [false, false, false, false, false, false, false]
   },
   {
     id: 'h-notes',
     name: 'Study Notes & Formulas',
-    weekStatus: [true, true, true, true, true, true, false]
+    weekStatus: [false, false, false, false, false, false, false]
   },
   {
     id: 'h-news',
-    name: 'Observatory News Briefing',
-    weekStatus: [true, true, false, false, true, false, false]
+    name: 'Observatory Dispatch Briefing',
+    weekStatus: [false, false, false, false, false, false, false]
   }
 ];
 
-const defaultProgress: UserProgress = {
-  completedLessonIds: ['l1-1'],
-  inProgressLessonId: 'l1-2',
-  bookmarkedLessonIds: ['l2-3', 'l1-4'],
-  bookmarkedDiscoveryIds: ['disc-jwst-deep-field'],
-  notes: [
-    {
-      id: 'note-1',
-      lessonId: 'l1-4',
-      lessonTitle: 'Gravity and Orbital Motion',
-      levelId: 1,
-      createdAt: '2026-10-20T14:32:00Z',
-      updatedAt: '2026-10-20T14:32:00Z',
-      content: 'Remember Newton\'s thought experiment: an orbit is perpetual free-fall forward where the planetary surface curves away at the exact same rate! Orbital speed formula: v = sqrt(GM/r).',
-      tags: ['gravity', 'key-formula', 'orbital-mechanics']
-    },
-    {
-      id: 'note-2',
-      lessonId: 'l2-4',
-      lessonTitle: 'LEO, MEO, and Geostationary Orbit',
-      levelId: 2,
-      createdAt: '2026-10-22T09:15:00Z',
-      updatedAt: '2026-10-22T09:15:00Z',
-      content: 'GEO altitude is exactly 35,786 km above Earth equator. Period matches Earth sidereal rotation: 23h 56m 04s. Ground track is a single fixed point.',
-      tags: ['telecom', 'GEO', 'altitude']
-    }
-  ],
-  quizResults: {
-    'l1-1': {
-      lessonId: 'l1-1',
-      lessonTitle: 'What is the Universe? Scale and Cosmological Horizons',
-      score: 3,
-      total: 3,
-      passed: true,
-      date: '2026-10-19T10:00:00Z'
-    }
-  },
-  learningStreakDays: 12,
+// Completely fresh starter profile for a new user on Day 1
+export const freshStarterProgress: UserProgress = {
+  completedLessonIds: [],
+  inProgressLessonId: 'l1-1',
+  bookmarkedLessonIds: [],
+  bookmarkedDiscoveryIds: [],
+  notes: [],
+  quizResults: {},
+  learningStreakDays: 1, // Day 1: Starting out
   lastActiveDate: new Date().toISOString().split('T')[0],
-  xpPoints: 2450,
-  // RPG Stats
-  playerLevel: 14,
-  cosmicGold: 380,
-  hp: 85,
-  mp: 90,
-  int: 82,
-  sta: 75,
-  lck: 60,
-  playerTitle: 'Cadet Astronavigator',
-  quests: defaultQuests,
-  habits: defaultHabits,
-  unlockedRewardIds: ['title-astronavigator']
+  xpPoints: 0,
+  playerLevel: 1,
+  cosmicGold: 25, // Starting welcome bonus
+  hp: 100,
+  mp: 100,
+  int: 10,
+  sta: 50,
+  lck: 50,
+  playerTitle: 'Space Cadet',
+  quests: freshStarterQuests,
+  habits: freshStarterHabits,
+  unlockedRewardIds: []
 };
 
 export function loadProgress(): UserProgress {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) {
-      saveProgress(defaultProgress);
-      return defaultProgress;
+      saveProgress(freshStarterProgress);
+      return freshStarterProgress;
     }
     const parsed: UserProgress = JSON.parse(data);
     return {
-      ...defaultProgress,
+      ...freshStarterProgress,
       ...parsed,
-      quests: parsed.quests?.length ? parsed.quests : defaultProgress.quests,
-      habits: parsed.habits?.length ? parsed.habits : defaultProgress.habits,
-      unlockedRewardIds: parsed.unlockedRewardIds || defaultProgress.unlockedRewardIds
+      quests: parsed.quests?.length ? parsed.quests : freshStarterQuests,
+      habits: parsed.habits?.length ? parsed.habits : freshStarterHabits,
+      unlockedRewardIds: parsed.unlockedRewardIds || []
     };
   } catch (err) {
     console.error('Failed to load user progress:', err);
-    return defaultProgress;
+    return freshStarterProgress;
   }
 }
 
@@ -207,6 +178,16 @@ export function saveProgress(progress: UserProgress): void {
   } catch (err) {
     console.error('Failed to save user progress:', err);
   }
+}
+
+export function resetProgress(): UserProgress {
+  const fresh: UserProgress = {
+    ...freshStarterProgress,
+    quests: freshStarterQuests.map(q => ({ ...q, completed: false })),
+    habits: freshStarterHabits.map(h => ({ ...h, weekStatus: [false, false, false, false, false, false, false] }))
+  };
+  saveProgress(fresh);
+  return fresh;
 }
 
 export function toggleQuest(questId: string, current: UserProgress): UserProgress {
@@ -226,7 +207,8 @@ export function toggleQuest(questId: string, current: UserProgress): UserProgres
     quests: updatedQuests,
     xpPoints: Math.max(0, current.xpPoints + xpDelta),
     cosmicGold: Math.max(0, current.cosmicGold + goldDelta),
-    playerLevel: Math.floor((current.xpPoints + xpDelta) / 200) + 1
+    playerLevel: Math.floor((current.xpPoints + xpDelta) / 150) + 1,
+    int: Math.min(100, current.int + (nextStatus ? 3 : -3))
   };
 
   saveProgress(updated);
@@ -245,7 +227,8 @@ export function toggleHabitDay(habitId: string, dayIdx: number, current: UserPro
 
   const updated: UserProgress = {
     ...current,
-    habits: updatedHabits
+    habits: updatedHabits,
+    sta: Math.min(100, current.sta + 2)
   };
   saveProgress(updated);
   return updated;
@@ -292,20 +275,28 @@ export function toggleBookmarkDiscovery(discoveryId: string, current: UserProgre
 }
 
 export function markLessonComplete(lessonId: string, current: UserProgress, xpEarned = 100): UserProgress {
-  const completed = current.completedLessonIds.includes(lessonId)
-    ? current.completedLessonIds
-    : [...current.completedLessonIds, lessonId];
+  const isFirstTime = !current.completedLessonIds.includes(lessonId);
+  const completed = isFirstTime
+    ? [...current.completedLessonIds, lessonId]
+    : current.completedLessonIds;
     
-  const newXp = current.xpPoints + (current.completedLessonIds.includes(lessonId) ? 15 : xpEarned);
-  const newGold = current.cosmicGold + 40;
+  const newXp = current.xpPoints + (isFirstTime ? xpEarned : 15);
+  const newGold = current.cosmicGold + (isFirstTime ? 35 : 5);
+
+  // Automatically mark the first lesson quest as completed if it's the first lesson
+  const updatedQuests = current.quests.map(q => {
+    if (q.id === 'q-first-lesson') return { ...q, completed: true };
+    return q;
+  });
 
   const updated: UserProgress = {
     ...current,
     completedLessonIds: completed,
+    quests: updatedQuests,
     xpPoints: newXp,
     cosmicGold: newGold,
-    playerLevel: Math.floor(newXp / 200) + 1,
-    int: Math.min(100, current.int + 3)
+    playerLevel: Math.floor(newXp / 150) + 1,
+    int: Math.min(100, current.int + 8)
   };
   saveProgress(updated);
   return updated;
@@ -313,7 +304,13 @@ export function markLessonComplete(lessonId: string, current: UserProgress, xpEa
 
 export function saveQuizResult(result: QuizResult, current: UserProgress): UserProgress {
   const newXp = current.xpPoints + (result.passed ? 80 : 25);
-  const newGold = current.cosmicGold + (result.passed ? 50 : 15);
+  const newGold = current.cosmicGold + (result.passed ? 40 : 10);
+
+  // Automatically mark quiz quest as done if passed
+  const updatedQuests = current.quests.map(q => {
+    if (q.id === 'q-first-quiz' && result.passed) return { ...q, completed: true };
+    return q;
+  });
 
   const updated: UserProgress = {
     ...current,
@@ -321,10 +318,11 @@ export function saveQuizResult(result: QuizResult, current: UserProgress): UserP
       ...current.quizResults,
       [result.lessonId]: result
     },
+    quests: updatedQuests,
     xpPoints: newXp,
     cosmicGold: newGold,
-    playerLevel: Math.floor(newXp / 200) + 1,
-    int: Math.min(100, current.int + (result.passed ? 5 : 1))
+    playerLevel: Math.floor(newXp / 150) + 1,
+    int: Math.min(100, current.int + (result.passed ? 10 : 2))
   };
   saveProgress(updated);
   return updated;
@@ -339,9 +337,17 @@ export function addOrUpdateNote(note: UserNote, current: UserProgress): UserProg
   } else {
     updatedNotes = [note, ...current.notes];
   }
+
+  // Mark first note quest as done if first note
+  const updatedQuests = current.quests.map(q => {
+    if (q.id === 'q-first-note') return { ...q, completed: true };
+    return q;
+  });
+
   const updated: UserProgress = {
     ...current,
     notes: updatedNotes,
+    quests: updatedQuests,
     xpPoints: current.xpPoints + 20,
     cosmicGold: current.cosmicGold + 10
   };

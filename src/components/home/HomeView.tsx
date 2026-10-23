@@ -21,12 +21,13 @@ import {
   Plus,
   Check,
   Calendar as CalendarIcon,
-  ShoppingBag
+  ShoppingBag,
+  Edit2
 } from 'lucide-react';
 import { TabType, UserProgress, Lesson, DailyDiscovery, RPGQuest, RPGHabit } from '../../types';
 import { courseLevels } from '../../data/courses';
 import { dailyDiscoveries } from '../../data/discoveries';
-import { toggleQuest, toggleHabitDay } from '../../services/storage';
+import { toggleQuest, toggleHabitDay, saveProgress } from '../../services/storage';
 
 interface HomeViewProps {
   progress: UserProgress;
@@ -43,7 +44,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onSelectDiscovery,
   onUpdateProgress,
 }) => {
-  const [questTab, setQuestTab] = useState<'today' | 'upcoming' | 'completed'>('today');
+  const [questTab, setQuestTab] = useState<'today' | 'completed'>('today');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [travelerName, setTravelerName] = useState(progress.playerTitle || 'Space Cadet');
 
   // Next lesson & Today's discovery
   const allLessons = courseLevels.flatMap(lvl => lvl.lessons);
@@ -53,22 +56,30 @@ export const HomeView: React.FC<HomeViewProps> = ({
   // Quests filtering
   const filteredQuests = progress.quests.filter(q => {
     if (questTab === 'completed') return q.completed;
-    if (questTab === 'today') return !q.completed;
-    return true;
+    return !q.completed;
   });
 
   const handleToggleQuest = (questId: string) => {
     const updated = toggleQuest(questId, progress);
     onUpdateProgress(updated);
     
-    // Check if it was completed
     const q = updated.quests.find(item => item.id === questId);
     if (q?.completed) {
       confetti({
-        particleCount: 40,
+        particleCount: 50,
         spread: 60,
         origin: { y: 0.7 }
       });
+    }
+  };
+
+  const handleQuestAction = (quest: RPGQuest) => {
+    if (quest.targetTab === 'learning-path') {
+      onSelectLesson(nextLesson);
+    } else if (quest.targetTab === 'discover') {
+      onSelectDiscovery(todaysDiscovery);
+    } else if (quest.targetTab) {
+      onNavigate(quest.targetTab);
     }
   };
 
@@ -77,14 +88,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
     onUpdateProgress(updated);
   };
 
-  // Calendar dates mock generator for current month (May 2026 / current)
+  const handleSaveName = () => {
+    setIsEditingName(false);
+    const updated: UserProgress = {
+      ...progress,
+      playerTitle: travelerName.trim() || 'Space Cadet'
+    };
+    saveProgress(updated);
+    onUpdateProgress(updated);
+  };
+
+  // Calendar dates
   const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
   const currentDay = 15;
   const questDueDays = [4, 8, 15, 22, 29];
   const eventDays = [11, 18, 25];
   const rewardDays = [7, 14, 21, 28];
-
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const isBrandNewUser = progress.completedLessonIds.length === 0 && progress.xpPoints === 0;
 
   return (
     <div className="space-y-12 pb-20 animate-fadeIn">
@@ -125,7 +147,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         {/* 5 RPG Category Icons Row (Health, Quests, Rewards, Stats, Level Up) */}
         <div className="flex items-center justify-center gap-4 sm:gap-10 max-w-2xl mx-auto mb-8 overflow-x-auto py-2">
           
-          <div className="flex flex-col items-center gap-1.5 group cursor-pointer">
+          <div className="flex flex-col items-center gap-1.5 group cursor-pointer" onClick={() => onNavigate('my-universe')}>
             <div className="w-11 h-11 rounded-xl bg-rose-950/60 border border-rose-500/50 flex items-center justify-center text-rose-400 text-lg group-hover:scale-110 group-hover:border-rose-400 transition-all shadow-lg shadow-rose-950/50">
               ❤️
             </div>
@@ -162,15 +184,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         </div>
 
-        {/* Ornate RPG Launch Badge */}
+        {/* Welcoming Badge */}
         <div className="inline-block rounded-2xl border border-purple-600/40 bg-purple-950/40 p-4 max-w-lg shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-center gap-2 text-amber-300 font-pixel text-xs mb-1">
             <span>✦</span>
-            <span>LEVEL UP YOUR MIND</span>
+            <span>{isBrandNewUser ? 'WELCOME CADET • READY FOR LAUNCH' : 'LEVEL UP YOUR MIND'}</span>
             <span>✦</span>
           </div>
           <p className="text-purple-200 text-xs font-sans leading-relaxed">
-            The ultimate cosmic learning dashboard to level up your space habits, missions, and astrophysics knowledge.
+            {isBrandNewUser 
+              ? 'Your space odyssey starts from scratch on Day 1. Complete quests, master orbital physics, and unlock cosmic ranks!'
+              : 'The ultimate cosmic learning dashboard to level up your space habits, missions, and astrophysics knowledge.'}
           </p>
         </div>
 
@@ -207,7 +231,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               
               {/* Avatar + Level */}
               <div className="flex items-center gap-3">
-                <div className="relative w-14 h-14 rounded-full border-2 border-purple-500 overflow-hidden bg-purple-900 shadow-md shadow-purple-500/30">
+                <div className="relative w-14 h-14 rounded-full border-2 border-purple-500 overflow-hidden bg-purple-900 shadow-md shadow-purple-500/30 flex-shrink-0">
                   <img 
                     src="https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=200&q=80" 
                     alt="Traveler Avatar"
@@ -216,13 +240,33 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <div className="absolute inset-0 bg-purple-600/10"></div>
                 </div>
 
-                <div>
-                  <div className="text-xs font-pixel text-white uppercase flex items-center gap-1">
-                    <span>TRAVELER</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-pixel text-white uppercase truncate">TRAVELER</span>
+                    <button 
+                      onClick={() => setIsEditingName(!isEditingName)}
+                      className="text-purple-400 hover:text-amber-300 p-0.5"
+                      title="Edit cadet name"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
                   </div>
-                  <div className="text-[10px] font-silkscreen text-purple-300 mt-0.5">
-                    Level {progress.playerLevel} {progress.playerTitle}
-                  </div>
+
+                  {isEditingName ? (
+                    <div className="flex items-center gap-1 mt-1">
+                      <input
+                        type="text"
+                        value={travelerName}
+                        onChange={(e) => setTravelerName(e.target.value)}
+                        className="w-full text-[10px] font-silkscreen bg-purple-950 border border-purple-600 px-1 py-0.5 rounded text-white focus:outline-none"
+                      />
+                      <button onClick={handleSaveName} className="text-xs text-emerald-400 font-bold">✓</button>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] font-silkscreen text-purple-300 mt-0.5 truncate">
+                      Level {progress.playerLevel} {progress.playerTitle}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -230,12 +274,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <div className="space-y-1">
                 <div className="flex justify-between text-[9px] font-pixel text-purple-300">
                   <span>XP</span>
-                  <span>{progress.xpPoints % 1000} / 1000 XP</span>
+                  <span>{progress.xpPoints % 150} / 150 XP</span>
                 </div>
                 <div className="w-full h-2 bg-purple-950 rounded-full border border-purple-800 overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-400 to-amber-300 transition-all duration-500"
-                    style={{ width: `${((progress.xpPoints % 1000) / 1000) * 100}%` }}
+                    style={{ width: `${Math.min(100, ((progress.xpPoints % 150) / 150) * 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -323,7 +367,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 className="w-full flex items-center gap-2 p-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-800/60 text-xs text-purple-200 transition-colors text-left cursor-pointer"
               >
                 <span>🗡️</span>
-                <span className="font-silkscreen text-[11px]">Resume Quest</span>
+                <span className="font-silkscreen text-[11px]">
+                  {progress.completedLessonIds.length === 0 ? 'Start First Lesson' : 'Resume Quest'}
+                </span>
               </button>
 
               <button 
@@ -369,7 +415,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </h3>
                 </div>
 
-                {/* Sub-tabs: Today / Upcoming / Completed */}
+                {/* Sub-tabs: Today / Completed */}
                 <div className="flex items-center gap-1 bg-purple-950 p-0.5 rounded-lg border border-purple-800 text-[10px] font-silkscreen">
                   {(['today', 'completed'] as const).map(t => (
                     <button
@@ -387,42 +433,70 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
               {/* Quests Checklist */}
               <div className="space-y-2.5">
-                {filteredQuests.map((quest) => (
-                  <div
-                    key={quest.id}
-                    onClick={() => handleToggleQuest(quest.id)}
-                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all cursor-pointer ${
-                      quest.completed
-                        ? 'border-purple-900/40 bg-purple-950/20 opacity-60'
-                        : 'border-[#3d2a63] bg-[#1d143a]/70 hover:border-purple-500 hover:bg-[#231846]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                        quest.completed ? 'bg-purple-500 border-purple-400 text-slate-950' : 'border-purple-600'
-                      }`}>
-                        {quest.completed && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
-                      </div>
-                      <span className={`text-xs font-sans ${quest.completed ? 'line-through text-purple-400' : 'text-slate-100 font-medium'}`}>
-                        {quest.title}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 flex-shrink-0 font-mono text-[11px]">
-                      <span className="text-amber-300 font-bold">+{quest.rewardXp} XP</span>
-                      <span>{quest.icon}</span>
-                    </div>
+                {filteredQuests.length === 0 ? (
+                  <div className="p-4 text-center rounded-xl bg-purple-950/20 border border-purple-900/50 text-purple-400 text-xs font-silkscreen">
+                    {questTab === 'completed' 
+                      ? 'NO COMPLETED QUESTS YET. CHECK OFF A TASK TO EARN XP!' 
+                      : 'ALL CURRENT QUESTS FINISHED! TAKE A NEW LESSON TO UNLOCK MORE.'}
                   </div>
-                ))}
+                ) : (
+                  filteredQuests.map((quest) => (
+                    <div
+                      key={quest.id}
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
+                        quest.completed
+                          ? 'border-purple-900/40 bg-purple-950/20 opacity-60'
+                          : 'border-[#3d2a63] bg-[#1d143a]/70 hover:border-purple-500 hover:bg-[#231846]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Checkbox */}
+                        <button
+                          onClick={() => handleToggleQuest(quest.id)}
+                          className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${
+                            quest.completed ? 'bg-purple-500 border-purple-400 text-slate-950' : 'border-purple-600 hover:border-purple-400'
+                          }`}
+                        >
+                          {quest.completed && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                        </button>
+
+                        {/* Title - clickable to launch the feature */}
+                        <span 
+                          onClick={() => handleQuestAction(quest)}
+                          className={`text-xs font-sans truncate cursor-pointer hover:underline ${
+                            quest.completed ? 'line-through text-purple-400' : 'text-slate-100 font-medium'
+                          }`}
+                        >
+                          {quest.title}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-shrink-0 font-mono text-[11px]">
+                        <span className="text-amber-300 font-bold">+{quest.rewardXp} XP</span>
+                        <span 
+                          onClick={() => handleQuestAction(quest)}
+                          className="cursor-pointer hover:scale-125 transition-transform" 
+                          title="Launch Quest"
+                        >
+                          {quest.icon}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Lesson recommendation bridge */}
               <div className="pt-2">
                 <button
                   onClick={() => onSelectLesson(nextLesson)}
-                  className="w-full py-2.5 rounded-xl rpg-button text-white text-xs font-pixel tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl rpg-button text-white text-xs font-pixel tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                 >
-                  <span>+ PLAY CURRENT LESSON QUEST</span>
+                  <span>
+                    {isBrandNewUser 
+                      ? '⚔️ START FIRST LESSON: WHAT IS THE UNIVERSE?' 
+                      : '+ RESUME SPACE SCIENCE QUEST'}
+                  </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -579,7 +653,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <span className="text-2xl font-pixel text-white drop-shadow-[0_2px_4px_rgba(168,85,247,0.5)]">
                     {progress.xpPoints.toLocaleString()}
                   </span>
-                  <span className="text-[10px] font-pixel text-emerald-400">+120 XP this week</span>
+                  <span className="text-[10px] font-pixel text-emerald-400">
+                    {isBrandNewUser ? 'Ready to earn' : `Level ${progress.playerLevel}`}
+                  </span>
                 </div>
 
                 {/* SVG Curve Chart */}
@@ -592,16 +668,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       </linearGradient>
                     </defs>
                     <path
-                      d="M 0 45 Q 30 40, 60 30 T 120 20 T 160 12 T 200 4 L 200 50 L 0 50 Z"
+                      d={progress.xpPoints === 0 ? "M 0 45 L 200 45 L 200 50 L 0 50 Z" : "M 0 45 Q 30 40, 60 30 T 120 20 T 160 12 T 200 4 L 200 50 L 0 50 Z"}
                       fill="url(#chartGrad)"
                     />
                     <path
-                      d="M 0 45 Q 30 40, 60 30 T 120 20 T 160 12 T 200 4"
+                      d={progress.xpPoints === 0 ? "M 0 45 L 200 45" : "M 0 45 Q 30 40, 60 30 T 120 20 T 160 12 T 200 4"}
                       fill="none"
                       stroke="#c084fc"
                       strokeWidth="2.5"
                     />
-                    <circle cx="200" cy="4" r="3.5" fill="#fef08a" stroke="#a855f7" strokeWidth="1.5" />
+                    <circle cx="200" cy={progress.xpPoints === 0 ? 45 : 4} r="3.5" fill="#fef08a" stroke="#a855f7" strokeWidth="1.5" />
                   </svg>
                 </div>
               </div>
@@ -614,9 +690,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <span>CURRENT STREAK</span>
                   </div>
                   <div className="text-xl font-pixel text-amber-300 mt-1">
-                    {progress.learningStreakDays} <span className="text-xs font-silkscreen text-purple-300">DAYS</span>
+                    {progress.learningStreakDays} <span className="text-xs font-silkscreen text-purple-300">DAY</span>
                   </div>
-                  <div className="text-[10px] font-silkscreen text-emerald-400 mt-0.5">Keep it up!</div>
+                  <div className="text-[10px] font-silkscreen text-emerald-400 mt-0.5">
+                    {isBrandNewUser ? 'Day 1: Journey Begins!' : 'Keep it up!'}
+                  </div>
                 </div>
 
                 {/* Cute Pixel Space Mascot */}

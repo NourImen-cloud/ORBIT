@@ -18,12 +18,13 @@ import {
   ShoppingBag,
   Coins,
   Shield,
-  Crown
+  Crown,
+  RotateCcw
 } from 'lucide-react';
 import { UserProgress, Lesson, DailyDiscovery, RewardShopItem } from '../../types';
 import { courseLevels } from '../../data/courses';
 import { dailyDiscoveries } from '../../data/discoveries';
-import { deleteNote, purchaseReward, defaultShopItems } from '../../services/storage';
+import { deleteNote, purchaseReward, defaultShopItems, resetProgress } from '../../services/storage';
 
 interface MyUniverseViewProps {
   progress: UserProgress;
@@ -38,7 +39,7 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
   onSelectDiscovery,
   onUpdateProgress,
 }) => {
-  const [activeTab, setActiveTab] = useState<'bookmarks' | 'notes' | 'quizzes' | 'badges' | 'shop'>('shop');
+  const [activeTab, setActiveTab] = useState<'bookmarks' | 'notes' | 'quizzes' | 'badges' | 'shop'>('notes');
   const [noteSearch, setNoteSearch] = useState('');
 
   const allLessons = courseLevels.flatMap(lvl => lvl.lessons);
@@ -66,6 +67,14 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
     });
   };
 
+  const handleReset = () => {
+    if (window.confirm('Are you sure you want to restart your cosmic journey from Day 1? All progress, XP, and gold will be reset to scratch.')) {
+      const fresh = resetProgress();
+      onUpdateProgress(fresh);
+      alert('Your journey has been reset to Day 1! Welcome, Space Cadet.');
+    }
+  };
+
   const exportNotes = () => {
     const content = progress.notes.map(n => 
       `# ${n.lessonTitle} (Level ${n.levelId})\nDate: ${new Date(n.createdAt).toLocaleDateString()}\n\n${n.content}\n\n---\n`
@@ -85,14 +94,14 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
       id: 'pioneer',
       name: 'Cosmic Pioneer',
       desc: 'Completed Level 1: Foundations of Space',
-      unlocked: courseLevels[0].lessons.every(l => progress.completedLessonIds.includes(l.id)),
+      unlocked: courseLevels[0].lessons.length > 0 && courseLevels[0].lessons.every(l => progress.completedLessonIds.includes(l.id)),
       icon: '🌌'
     },
     {
       id: 'engineer',
       name: 'Orbital Engineer',
       desc: 'Completed Level 2: Satellites and Orbits',
-      unlocked: courseLevels[1].lessons.every(l => progress.completedLessonIds.includes(l.id)),
+      unlocked: courseLevels[1].lessons.length > 0 && courseLevels[1].lessons.every(l => progress.completedLessonIds.includes(l.id)),
       icon: '🛰️'
     },
     {
@@ -114,18 +123,29 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
   return (
     <div className="space-y-10 pb-20 animate-fadeIn">
       
-      {/* Header */}
-      <div className="border-b border-purple-900/60 pb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950 border border-purple-600/40 text-purple-300 text-xs font-pixel mb-3">
-          <span>✦</span>
-          <span>CHARACTER INVENTORY & REWARDS BAZAAR</span>
+      {/* Header with Reset Action */}
+      <div className="border-b border-purple-900/60 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950 border border-purple-600/40 text-purple-300 text-xs font-pixel mb-3">
+            <span>✦</span>
+            <span>CHARACTER INVENTORY & REWARDS BAZAAR</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-pixel text-white uppercase tracking-tight mb-2 drop-shadow-[0_2px_4px_rgba(168,85,247,0.5)]">
+            My Universe
+          </h1>
+          <p className="text-purple-300/80 text-sm max-w-2xl leading-relaxed font-sans">
+            Your personal command hub. Spend your hard-earned quest gold in the Bazaar, manage study notes, and track your achievements.
+          </p>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-pixel text-white uppercase tracking-tight mb-2 drop-shadow-[0_2px_4px_rgba(168,85,247,0.5)]">
-          My Universe
-        </h1>
-        <p className="text-purple-300/80 text-sm max-w-3xl leading-relaxed font-sans">
-          Your RPG command hub. Spend your hard-earned cosmic gold in the Bazaar, manage study notes, and track your achievements.
-        </p>
+
+        <button
+          onClick={handleReset}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-900/60 hover:border-rose-600 bg-rose-950/30 text-rose-300 hover:text-white text-xs font-silkscreen transition-colors cursor-pointer self-start md:self-auto"
+          title="Reset all progress to Day 1"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Restart Journey From Scratch</span>
+        </button>
       </div>
 
       {/* Top Learning Summary Stats */}
@@ -167,9 +187,9 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
       {/* Navigation Sub-Tabs */}
       <div className="flex items-center gap-2 border-b border-purple-900/60 pb-2 overflow-x-auto">
         {[
-          { id: 'shop', label: 'Rewards Shop', icon: ShoppingBag },
-          { id: 'bookmarks', label: 'Saved Bookmarks', icon: Bookmark },
           { id: 'notes', label: 'Study Grimoire', icon: PenTool },
+          { id: 'bookmarks', label: 'Saved Bookmarks', icon: Bookmark },
+          { id: 'shop', label: 'Rewards Shop', icon: ShoppingBag },
           { id: 'quizzes', label: 'Quiz Scorecard', icon: Brain },
           { id: 'badges', label: 'Achievements', icon: Award },
         ].map((tab) => {
@@ -191,6 +211,76 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
           );
         })}
       </div>
+
+      {/* Tab: Study Grimoire / Notes */}
+      {activeTab === 'notes' && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={noteSearch}
+                onChange={(e) => setNoteSearch(e.target.value)}
+                placeholder="Search notes..."
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#140e28] border border-purple-900 text-xs text-purple-100 placeholder:text-purple-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+
+            {progress.notes.length > 0 && (
+              <button
+                onClick={exportNotes}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-950 border border-purple-800 text-purple-200 text-xs font-silkscreen hover:bg-purple-900 transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Grimoire (.md)</span>
+              </button>
+            )}
+          </div>
+
+          {filteredNotes.length === 0 ? (
+            <div className="p-10 text-center rounded-2xl bg-[#140e28]/70 border border-purple-900/50 space-y-3">
+              <span className="text-3xl">📜</span>
+              <h3 className="text-sm font-pixel text-white uppercase">Your Grimoire is Ready</h3>
+              <p className="text-xs text-purple-300 max-w-md mx-auto leading-relaxed">
+                You haven't recorded any notes yet. While reading any lesson, click the "Notes" drawer on the top right to inscribe key equations, cosmic facts, or study reminders!
+              </p>
+              <button
+                onClick={() => onSelectLesson(courseLevels[0].lessons[0])}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl rpg-button text-white text-xs font-pixel tracking-wider cursor-pointer"
+              >
+                <span>OPEN LESSON 1 TO TAKE NOTES</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredNotes.map((note) => (
+                <div key={note.id} className="p-6 rounded-2xl bg-[#140e28] border border-[#3b2a60] flex flex-col justify-between shadow-lg">
+                  <div>
+                    <div className="flex items-center justify-between text-xs font-mono text-purple-400 mb-2">
+                      <span className="text-amber-300 font-bold">{note.lessonTitle}</span>
+                      <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-sm text-purple-200 leading-relaxed whitespace-pre-wrap font-sans mb-4">
+                      {note.content}
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-purple-900/60 flex justify-end">
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="text-purple-500 hover:text-rose-400 transition-colors p-1"
+                      title="Delete note"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tab: REWARDS SHOP */}
       {activeTab === 'shop' && (
@@ -281,8 +371,14 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
               BOOKMARKED LESSONS ({bookmarkedLessons.length})
             </h3>
             {bookmarkedLessons.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl bg-purple-950/30 border border-purple-900/60 text-purple-300 text-xs font-silkscreen">
-                NO LESSONS BOOKMARKED YET.
+              <div className="p-10 text-center rounded-2xl bg-[#140e28]/70 border border-purple-900/50 space-y-3">
+                <span className="text-3xl">🔖</span>
+                <p className="text-xs text-purple-300 font-silkscreen">
+                  NO BOOKMARKS SAVED YET.
+                </p>
+                <p className="text-xs text-purple-400">
+                  Click the bookmark icon on any lesson to pin it here for quick study access.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -308,8 +404,14 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
               BOOKMARKED DISCOVERIES ({bookmarkedDiscoveries.length})
             </h3>
             {bookmarkedDiscoveries.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl bg-purple-950/30 border border-purple-900/60 text-purple-300 text-xs font-silkscreen">
-                NO DISCOVERIES BOOKMARKED YET.
+              <div className="p-10 text-center rounded-2xl bg-[#140e28]/70 border border-purple-900/50 space-y-3">
+                <span className="text-3xl">🔭</span>
+                <p className="text-xs text-purple-300 font-silkscreen">
+                  NO DISCOVERIES BOOKMARKED YET.
+                </p>
+                <p className="text-xs text-purple-400">
+                  Explore the Codex to bookmark frontier space discoveries and deep dives.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -332,80 +434,46 @@ export const MyUniverseView: React.FC<MyUniverseViewProps> = ({
         </div>
       )}
 
-      {/* Tab: Study Grimoire / Notes */}
-      {activeTab === 'notes' && (
-        <div className="space-y-6 animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={noteSearch}
-                onChange={(e) => setNoteSearch(e.target.value)}
-                placeholder="Search notes..."
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#140e28] border border-purple-900 text-xs text-purple-100 placeholder:text-purple-500 focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            {progress.notes.length > 0 && (
-              <button
-                onClick={exportNotes}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-950 border border-purple-800 text-purple-200 text-xs font-silkscreen hover:bg-purple-900 transition-colors cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Export Grimoire (.md)</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredNotes.map((note) => (
-              <div key={note.id} className="p-6 rounded-2xl bg-[#140e28] border border-[#3b2a60] flex flex-col justify-between shadow-lg">
-                <div>
-                  <div className="flex items-center justify-between text-xs font-mono text-purple-400 mb-2">
-                    <span className="text-amber-300 font-bold">{note.lessonTitle}</span>
-                    <span>{new Date(note.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-sm text-purple-200 leading-relaxed whitespace-pre-wrap font-sans mb-4">
-                    {note.content}
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-purple-900/60 flex justify-end">
-                  <button
-                    onClick={() => handleDeleteNote(note.id)}
-                    className="text-purple-500 hover:text-rose-400 transition-colors p-1"
-                    title="Delete note"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Tab: Quiz Scorecard */}
       {activeTab === 'quizzes' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeIn">
-          {Object.values(progress.quizResults).map((qr, idx) => (
-            <div key={idx} className="p-5 rounded-2xl bg-[#140e28] border border-[#3b2a60] flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-white font-sans">{qr.lessonTitle}</h4>
-                <div className="text-xs font-mono text-purple-400 mt-1">
-                  Passed: {new Date(qr.date).toLocaleDateString()}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className={`text-lg font-pixel font-bold ${qr.passed ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {qr.score} / {qr.total}
-                </div>
-                <span className="text-[10px] font-silkscreen px-2 py-0.5 rounded bg-purple-950 text-purple-300">
-                  {qr.passed ? 'PASSED' : 'NEEDS PRACTICE'}
-                </span>
-              </div>
+        <div className="space-y-4 animate-fadeIn">
+          {Object.keys(progress.quizResults).length === 0 ? (
+            <div className="p-10 text-center rounded-2xl bg-[#140e28]/70 border border-purple-900/50 space-y-3">
+              <span className="text-3xl">🧠</span>
+              <h3 className="text-sm font-pixel text-white uppercase">No Quizzes Completed Yet</h3>
+              <p className="text-xs text-purple-300 max-w-md mx-auto leading-relaxed">
+                Take on your first challenge quiz at the end of any lesson to test your comprehension and earn Knowledge XP!
+              </p>
+              <button
+                onClick={() => onSelectLesson(courseLevels[0].lessons[0])}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl rpg-button text-white text-xs font-pixel tracking-wider cursor-pointer"
+              >
+                <span>START FIRST LESSON TO UNLOCK QUIZ</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.values(progress.quizResults).map((qr, idx) => (
+                <div key={idx} className="p-5 rounded-2xl bg-[#140e28] border border-[#3b2a60] flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-white font-sans">{qr.lessonTitle}</h4>
+                    <div className="text-xs font-mono text-purple-400 mt-1">
+                      Completed: {new Date(qr.date).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-lg font-pixel font-bold ${qr.passed ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {qr.score} / {qr.total}
+                    </div>
+                    <span className="text-[10px] font-silkscreen px-2 py-0.5 rounded bg-purple-950 text-purple-300">
+                      {qr.passed ? 'PASSED' : 'NEEDS PRACTICE'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
